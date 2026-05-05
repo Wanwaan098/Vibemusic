@@ -7,7 +7,7 @@ class VibeMusicLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Icon(Icons.music_note, size: 70, color: Color.fromARGB(255, 223, 158, 241)),
+        const Icon(Icons.music_note, size: 70, color: Color.fromRGBO(219, 50, 225, 1)),
 
         const SizedBox(height: 10),
 
@@ -22,11 +22,11 @@ class VibeMusicLogo extends StatelessWidget {
             children: [
               TextSpan(
                 text: "Vibe",
-                style: TextStyle(color:  Color.fromARGB(255, 223, 158, 241)),
+                style: TextStyle(color:  Color.fromRGBO(219, 50, 225, 1)),
               ),
               TextSpan(
                 text: "Music",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color:Color.fromARGB(255, 241, 150, 248)),
               ),
             ],
           ),

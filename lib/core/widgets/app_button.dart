@@ -14,12 +14,12 @@ class AppButton extends StatelessWidget {
 
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.purple, Color.fromARGB(255, 148, 81, 236)],
+          colors: [Color.fromRGBO(184, 42, 189, 1), Color.fromRGBO(192, 81, 236, 1)],
         ),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.purple.withValues(alpha: 0.4),
+            color: Color.fromRGBO(169, 46, 191, 0.6),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),

@@ -66,7 +66,7 @@ class MiniPlayer extends StatelessWidget {
                   minHeight: 3,
                   backgroundColor: Colors.white,
                   valueColor: AlwaysStoppedAnimation(
-                    Colors.purple, // ✅ tím
+                    const Color.fromRGBO(156, 39, 176, 1), // ✅ tím
                   ),
                 );
               },
