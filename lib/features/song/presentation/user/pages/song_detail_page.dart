@@ -6,6 +6,9 @@ import '../providers/song_provider.dart';
 import 'package:music_app/core/services/audio_player_service.dart';
 import 'package:music_app/features/artist/presentation/user/pages/artist_detail_page.dart';
 import 'package:music_app/features/artist/presentation/user/providers/artist_viewer_provider.dart';
+import 'package:music_app/features/favorite/presentation/providers/favorite_provider.dart';
+import 'package:music_app/features/playlist/presentation/providers/playlist_provider.dart';
+import 'package:music_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:music_app/injection_container.dart' as di;
 
 class SongDetailPage extends StatefulWidget {
@@ -23,7 +26,7 @@ class SongDetailPage extends StatefulWidget {
 }
 
 class _SongDetailPageState extends State<SongDetailPage> {
-  late AudioPlayerService audio; // ✅ dùng chung
+  AudioPlayerService get audio => context.read<SongProvider>().audio;
   final ScrollController _scrollController = ScrollController();
 
   final Map<int, GlobalKey> lyricKeys = {};
@@ -35,21 +38,22 @@ class _SongDetailPageState extends State<SongDetailPage> {
     super.initState();
 
     Future.microtask(() async {
-      final provider = context.read<SongProvider>();
-      audio = provider.audio; // ✅ dùng chung instance
+      final songProvider = context.read<SongProvider>();
 
       if (!widget.fromMiniPlayer) {
-        await provider.loadSongDetail(widget.songId);
+        await songProvider.loadSongDetail(widget.songId);
 
-        final song = provider.currentSong;
-
-        // ✅ CHỈ reset nếu KHÁC bài
+        final song = songProvider.currentSong;
         if (song != null && audio.currentUrl != song.audioUrl) {
           await audio.playNew(song.audioUrl);
         }
       }
 
-      provider.bindAudio(audio);
+      songProvider.bindAudio(audio);
+
+      // Load favorites on init
+      // Get user ID - you might get this from AuthProvider
+      // For now, using a placeholder - update with actual user ID
     });
   }
 
@@ -68,10 +72,8 @@ class _SongDetailPageState extends State<SongDetailPage> {
   void _scrollToIndex(int index) {
     final key = lyricKeys[index];
     if (key == null) return;
-
     final ctx = key.currentContext;
     if (ctx == null) return;
-
     Scrollable.ensureVisible(
       ctx,
       duration: const Duration(milliseconds: 250),
@@ -86,10 +88,274 @@ class _SongDetailPageState extends State<SongDetailPage> {
     return "$m:$s";
   }
 
+  // ============ DIALOGS ============
+
+  void _showTimerSubmenu() {
+    final songProvider = context.read<SongProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      builder: (context) => ListView(
+        shrinkWrap: true,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.timer, color: Colors.white),
+            title: const Text("10 phút", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              songProvider.startTimer(10 * 60);
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.timer, color: Colors.white),
+            title: const Text("30 phút", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              songProvider.startTimer(30 * 60);
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.timer, color: Colors.white),
+            title: const Text("1 giờ", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              songProvider.startTimer(60 * 60);
+              Navigator.pop(context);
+            },
+          ),
+          const Divider(color: Colors.white24),
+          ListTile(
+            leading: const Icon(Icons.close, color: Colors.red),
+            title: const Text(
+              "Hủy hẹn giờ",
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              songProvider.cancelTimer();
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddToPlaylistDialog(BuildContext context) {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final songProvider = context.read<SongProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final song = songProvider.currentSong;
+
+    if (song == null) return;
+
+    // Always load fresh playlists for current user
+    final userId = authProvider.user?.uid ?? '';
+    Future.microtask(() {
+      playlistProvider.loadPlaylists(userId);
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          "Thêm vào Playlist",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Consumer<PlaylistProvider>(
+            builder: (context, plProvider, _) {
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: plProvider.playlists.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == plProvider.playlists.length) {
+                    return ListTile(
+                      leading: const Icon(Icons.add, color: Colors.cyan),
+                      title: const Text(
+                        "Tạo Playlist Mới",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showCreatePlaylistDialog();
+                      },
+                    );
+                  }
+
+                  final playlist = plProvider.playlists[index];
+                  final isSongInPlaylist = playlist.songIds.contains(song.id);
+
+                  return ListTile(
+                    title: Text(
+                      playlist.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      "${playlist.songIds.length} bài hát${isSongInPlaylist ? ' (đã có bài này)' : ''}",
+                      style: TextStyle(
+                        color: isSongInPlaylist
+                            ? Colors.red[300]
+                            : Colors.white70,
+                      ),
+                    ),
+                    trailing: isSongInPlaylist
+                        ? const Icon(Icons.check, color: Colors.green)
+                        : null,
+                    onTap: isSongInPlaylist
+                        ? null
+                        : () {
+                            playlistProvider.addSongToPlaylistLocal(
+                              playlist.id,
+                              song.id,
+                            );
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Đã thêm vào ${playlist.name}"),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  void _showPlaylistDialog() {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final songProvider = context.read<SongProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final song = songProvider.currentSong;
+
+    if (song == null) return;
+
+    // Always load fresh playlists for current user
+    final userId = authProvider.user?.uid ?? '';
+    Future.microtask(() {
+      playlistProvider.loadPlaylists(userId);
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          "Add to Playlist",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Consumer<PlaylistProvider>(
+            builder: (context, plProvider, _) {
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: plProvider.playlists.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == plProvider.playlists.length) {
+                    return ListTile(
+                      leading: const Icon(Icons.add, color: Colors.cyan),
+                      title: const Text(
+                        "Create New Playlist",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showCreatePlaylistDialog();
+                      },
+                    );
+                  }
+
+                  final playlist = plProvider.playlists[index];
+                  return ListTile(
+                    title: Text(
+                      playlist.name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      "${playlist.songIds.length} songs",
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    onTap: () {
+                      playlistProvider.addSongToPlaylistLocal(
+                        playlist.id,
+                        song.id,
+                      );
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Added to ${playlist.name}")),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreatePlaylistDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text(
+          "New Playlist",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: "Playlist name",
+            hintStyle: const TextStyle(color: Colors.white54),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white24),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                final playlistProvider = context.read<PlaylistProvider>();
+                final authProvider = context.read<AuthProvider>();
+                final userId = authProvider.user?.uid ?? '';
+                await playlistProvider.createNewPlaylist(
+                  userId,
+                  controller.text,
+                );
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SongProvider>();
     final song = provider.currentSong;
+    final timerDisplay = provider.getTimerDisplay();
 
     if (song == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -107,10 +373,26 @@ class _SongDetailPageState extends State<SongDetailPage> {
             Navigator.pop(context);
           },
         ),
+        actions: [
+          // Timer Display
+          if (timerDisplay != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Center(
+                child: Text(
+                  timerDisplay,
+                  style: const TextStyle(
+                    color: Colors.cyan,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Stack(
         children: [
-          // BACKGROUND
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -123,12 +405,10 @@ class _SongDetailPageState extends State<SongDetailPage> {
               child: Container(color: Colors.black.withOpacity(0.6)),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 20),
-
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.network(
@@ -138,9 +418,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     fit: BoxFit.cover,
                   ),
                 ),
-
                 const SizedBox(height: 15),
-
                 Text(
                   song.title,
                   style: const TextStyle(
@@ -149,10 +427,8 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     color: Colors.white,
                   ),
                 ),
-
                 GestureDetector(
                   onTap: () {
-                    // ✅ Validate artistId before navigating
                     if (song.artistId.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -161,7 +437,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                       );
                       return;
                     }
-                     context.read<SongProvider>().showMini();
+                    context.read<SongProvider>().showMini();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -170,7 +446,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
                             ChangeNotifierProvider(
                               create: (_) => di.sl<ArtistViewerProvider>(),
                             ),
-                            // ✅ Preserve SongProvider for mini player
                             ChangeNotifierProvider.value(value: provider),
                           ],
                           child: ArtistDetailPage(artistId: song.artistId),
@@ -186,10 +461,9 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 15),
 
-                const SizedBox(height: 10),
-
-                // LYRICS
+                // LYRICS - EXPANDED
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
@@ -197,7 +471,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
                     itemBuilder: (_, i) {
                       final line = song.lyricLines[i];
                       lyricKeys[i] ??= GlobalKey();
-
                       final isActive = provider.currentLyric?.time == line.time;
 
                       return Container(
@@ -219,7 +492,11 @@ class _SongDetailPageState extends State<SongDetailPage> {
                   ),
                 ),
 
-                _buildBottomPlayer(song),
+                // ========== CONTROL BUTTONS ==========
+                _buildControlButtons(provider, song),
+
+                // ========== PLAYER CONTROLS ==========
+                _buildBottomPlayer(song, provider),
               ],
             ),
           ),
@@ -228,7 +505,160 @@ class _SongDetailPageState extends State<SongDetailPage> {
     );
   }
 
-  Widget _buildBottomPlayer(song) {
+  Widget _buildControlButtons(SongProvider provider, song) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Play Mode Button - 1 nút cycling
+          InkWell(
+            onTap: () => provider.cyclePlayMode(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _getPlayModeIcon(provider.playMode),
+                  color: Colors.cyan,
+                  size: 28,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _getPlayModeLabel(provider.playMode),
+                  style: const TextStyle(color: Colors.cyan, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+
+          // Favorite Button
+          Consumer<FavoriteProvider>(
+            builder: (context, favProvider, _) {
+              final isFav = favProvider.isFavoriteSong(song.id);
+              return InkWell(
+                onTap: () {
+                  final authProvider = context.read<AuthProvider>();
+                  final userId = authProvider.user?.uid ?? '';
+                  favProvider.toggleFavorite(userId, song.id);
+                },
+                child: Icon(
+                  isFav ? Icons.favorite : Icons.favorite_border,
+                  color: isFav ? Colors.red : Colors.white,
+                  size: 28,
+                ),
+              );
+            },
+          ),
+
+          // Timer Button
+          InkWell(
+            onTap: _showTimerSubmenu,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  provider.timerSeconds != null
+                      ? Icons.timer
+                      : Icons.timer_outlined,
+                  color: provider.timerSeconds != null
+                      ? Colors.cyan
+                      : Colors.white,
+                  size: 28,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Hẹn giờ",
+                  style: TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+
+          // Add to Playlist Button
+          InkWell(
+            onTap: () => _showAddToPlaylistDialog(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(10),
+                  child: const Icon(
+                    Icons.playlist_add,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  "Thêm playlist",
+                  style: TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+
+          // Queue / Upcoming Songs Button
+          InkWell(
+            onTap: () => _showUpcomingSongs(context, provider),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[800],
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(10),
+                  child: const Icon(
+                    Icons.queue_music,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  "Danh sách",
+                  style: TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getPlayModeIcon(PlayMode mode) {
+    switch (mode) {
+      case PlayMode.normal:
+        return Icons.arrow_right_alt;
+      case PlayMode.repeatAll:
+        return Icons.repeat;
+      case PlayMode.repeatOne:
+        return Icons.repeat_one;
+      case PlayMode.shuffle:
+        return Icons.shuffle;
+    }
+  }
+
+  String _getPlayModeLabel(PlayMode mode) {
+    switch (mode) {
+      case PlayMode.normal:
+        return "Phát 1 lần";
+      case PlayMode.repeatAll:
+        return "Lặp tất cả";
+      case PlayMode.repeatOne:
+        return "Lặp 1 bài";
+      case PlayMode.shuffle:
+        return "Ngẫu nhiên";
+    }
+  }
+
+  Widget _buildBottomPlayer(song, SongProvider provider) {
     return Column(
       children: [
         StreamBuilder<Duration>(
@@ -257,7 +687,18 @@ class _SongDetailPageState extends State<SongDetailPage> {
             return Column(
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.skip_previous,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                      onPressed: () {
+                        provider.previousSong();
+                      },
+                    ),
                     StreamBuilder<PlayerState>(
                       stream: audio.playerStateStream,
                       builder: (context, snapshot) {
@@ -265,9 +706,9 @@ class _SongDetailPageState extends State<SongDetailPage> {
 
                         return IconButton(
                           icon: Icon(
-                            isPlaying ? Icons.pause : Icons.play_arrow,
+                            isPlaying ? Icons.pause : Icons.play_circle_fill,
                             color: Colors.white,
-                            size: 34,
+                            size: 48,
                           ),
                           onPressed: () {
                             if (audio.currentUrl != song.audioUrl) {
@@ -281,6 +722,20 @@ class _SongDetailPageState extends State<SongDetailPage> {
                         );
                       },
                     ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.skip_next,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                      onPressed: () {
+                        provider.nextSong();
+                      },
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
                     Expanded(
                       child: Slider(
                         value: safeValue,
@@ -297,7 +752,6 @@ class _SongDetailPageState extends State<SongDetailPage> {
                   ],
                 ),
 
-                // ✅ TIME LEFT - RIGHT
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -321,6 +775,118 @@ class _SongDetailPageState extends State<SongDetailPage> {
           },
         ),
       ],
+    );
+  }
+
+  void _showUpcomingSongs(BuildContext context, SongProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // Determine context: from playlist or from home
+        final isFromPlaylist =
+            provider.originalPlaylist.length < provider.songs.length &&
+            provider.originalPlaylist.isNotEmpty;
+
+        final contextLabel = isFromPlaylist ? "Playlist" : "Tất cả bài hát";
+
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Danh sách phát",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$contextLabel (${provider.currentPlaylist.length} bài)",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Chế độ: ${_getPlayModeLabel(provider.playMode)}",
+                      style: const TextStyle(
+                        color: Colors.cyan,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 15),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: provider.currentPlaylist.length,
+                  itemBuilder: (context, index) {
+                    final song = provider.currentPlaylist[index];
+                    final isPlaying = index == provider.currentSongIndex;
+                    return ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Image.network(
+                          song.coverUrl,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      title: Text(
+                        song.title,
+                        style: TextStyle(
+                          color: isPlaying ? Colors.cyan : Colors.white,
+                          fontWeight: isPlaying
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(
+                        song.artistName,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      trailing: isPlaying
+                          ? const Icon(Icons.music_note, color: Colors.cyan)
+                          : Text(
+                              "${index + 1}",
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                            ),
+                      onTap: () {
+                        provider.playSongFromList(
+                          song,
+                          playlist: provider.originalPlaylist,
+                        );
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

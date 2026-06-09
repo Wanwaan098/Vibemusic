@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
@@ -14,7 +13,10 @@ class AppButton extends StatelessWidget {
 
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color.fromRGBO(184, 42, 189, 1), Color.fromRGBO(192, 81, 236, 1)],
+          colors: [
+            Color.fromRGBO(184, 42, 189, 1),
+            Color.fromRGBO(192, 81, 236, 1),
+          ],
         ),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [

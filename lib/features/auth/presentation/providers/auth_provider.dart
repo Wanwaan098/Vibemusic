@@ -7,15 +7,12 @@ class AuthProvider extends ChangeNotifier {
   final LoginUser loginUser;
   final RegisterUser registerUser;
 
-  AuthProvider({
-    required this.loginUser,
-    required this.registerUser,
-  });
+  AuthProvider({required this.loginUser, required this.registerUser});
 
-  UserEntity? _user; 
+  UserEntity? _user;
   bool _isLoading = false;
 
-  UserEntity? get user => _user; 
+  UserEntity? get user => _user;
   bool get isLoading => _isLoading;
 
   Future<void> login(String email, String password) async {
@@ -32,12 +29,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> register(String email, String password) async {
+  Future<void> register(String email, String password, {String? name}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await registerUser(email, password);
+      await registerUser(email, password, name: name);
     } catch (e) {
       rethrow;
     } finally {

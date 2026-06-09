@@ -8,7 +8,7 @@ class AuthRemoteDataSource {
 
   AuthRemoteDataSource(this.auth, this.firestore);
 
-  Future<User> register(String email, String password) async {
+  Future<User> register(String email, String password, {String? name}) async {
     final credential = await auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
@@ -17,6 +17,7 @@ class AuthRemoteDataSource {
     await firestore.collection("users").doc(credential.user!.uid).set({
       "email": email,
       "role": "user",
+      if (name != null && name.isNotEmpty) "name": name,
     });
 
     return credential.user!;

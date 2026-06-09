@@ -28,6 +28,10 @@ import 'features/song/domain/usecases/delete_song.dart';
 // ================= AUDIO =================
 import 'package:music_app/core/services/audio_player_service.dart';
 
+// ================= FAVORITE & PLAYLIST =================
+import 'features/favorite/presentation/providers/favorite_provider.dart';
+import 'features/playlist/presentation/providers/playlist_provider.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -57,16 +61,12 @@ class MyApp extends StatelessWidget {
       providers: [
         // ================= AUTH =================
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(
-            loginUser: di.sl(),
-            registerUser: di.sl(),
-          ),
+          create: (_) =>
+              AuthProvider(loginUser: di.sl(), registerUser: di.sl()),
         ),
 
         // ================= ARTIST =================
-        ChangeNotifierProvider(
-          create: (_) => di.sl<ArtistManagerProvider>(),
-        ),
+        ChangeNotifierProvider(create: (_) => di.sl<ArtistManagerProvider>()),
 
         // ================= AUDIO SINGLETON =================
         Provider<AudioPlayerService>(
@@ -93,13 +93,17 @@ class MyApp extends StatelessWidget {
             deleteSong: di.sl<DeleteSong>(),
           ),
         ),
+
+        // ================= FAVORITE =================
+        ChangeNotifierProvider(create: (_) => di.sl<FavoriteProvider>()),
+
+        // ================= PLAYLIST =================
+        ChangeNotifierProvider(create: (_) => di.sl<PlaylistProvider>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Music App',
-        theme: ThemeData(
-          useMaterial3: true,
-        ),
+        theme: ThemeData(useMaterial3: true),
         initialRoute: '/',
         onGenerateRoute: AppRouter.generateRoute,
       ),

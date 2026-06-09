@@ -4,10 +4,15 @@ import 'package:provider/provider.dart';
 
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
+import '../features/auth/presentation/pages/profile_page.dart';
 import '../features/admin/presentation/pages/admin_page.dart';
 import '../features/artist/presentation/admin/presentation/pages/manage_artists_page.dart';
 import '../features/artist/presentation/user/pages/artist_detail_page.dart';
 import '../features/artist/presentation/user/providers/artist_viewer_provider.dart';
+import '../features/favorite/presentation/pages/favorites_page.dart';
+import '../features/favorite/presentation/providers/favorite_provider.dart';
+import '../features/playlist/presentation/pages/playlists_page.dart';
+import '../features/playlist/presentation/providers/playlist_provider.dart';
 import '../features/song/presentation/user/pages/home_page.dart';
 import '../injection_container.dart' as di;
 
@@ -19,6 +24,9 @@ class AppRouter {
 
       case '/register':
         return MaterialPageRoute(builder: (_) => const RegisterPage());
+
+      case '/profile':
+        return MaterialPageRoute(builder: (_) => const ProfilePage());
 
       case '/admin':
         return MaterialPageRoute(builder: (_) => const AdminPage());
@@ -38,6 +46,24 @@ class AppRouter {
           builder: (_) => ChangeNotifierProvider(
             create: (_) => di.sl<ArtistViewerProvider>(),
             child: ArtistDetailPage(artistId: artistId),
+          ),
+        );
+
+      // ✅ FAVORITES
+      case '/favorites':
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => di.sl<FavoriteProvider>(),
+            child: const FavoritesPage(),
+          ),
+        );
+
+      // ✅ PLAYLISTS
+      case '/playlists':
+        return MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => di.sl<PlaylistProvider>(),
+            child: const PlaylistsPage(),
           ),
         );
 

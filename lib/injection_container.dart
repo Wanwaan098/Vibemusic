@@ -38,6 +38,20 @@ import 'features/song/domain/usecases/increase_play_count.dart';
 import 'package:music_app/features/artist/presentation/admin/presentation/providers/artist_manager_provider.dart';
 import 'package:music_app/features/artist/presentation/user/providers/artist_viewer_provider.dart';
 
+// ================= PLAYLIST =================
+import 'features/playlist/data/datasources/playlist_remote_data_source.dart';
+import 'features/playlist/data/repositories/playlist_repository_impl.dart';
+import 'features/playlist/domain/repositories/playlist_repository.dart';
+import 'features/playlist/domain/usecases/playlist_usecases.dart';
+import 'package:music_app/features/playlist/presentation/providers/playlist_provider.dart';
+
+// ================= FAVORITE =================
+import 'features/favorite/data/datasources/favorite_remote_data_source.dart';
+import 'features/favorite/data/repositories/favorite_repository_impl.dart';
+import 'features/favorite/domain/repositories/favorite_repository.dart';
+import 'features/favorite/domain/usecases/favorite_usecases.dart';
+import 'package:music_app/features/favorite/presentation/providers/favorite_provider.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -92,4 +106,54 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateSong(sl()));
   sl.registerLazySingleton(() => DeleteSong(sl()));
   sl.registerLazySingleton(() => IncreasePlayCount(sl()));
+
+  // ================= PLAYLIST =================
+  sl.registerLazySingleton<PlaylistRemoteDataSource>(
+    () => PlaylistRemoteDataSourceImpl(sl()),
+  );
+
+  sl.registerLazySingleton<PlaylistRepository>(
+    () => PlaylistRepositoryImpl(sl()),
+  );
+
+  sl.registerLazySingleton(() => GetPlaylistsByUser(sl()));
+  sl.registerLazySingleton(() => GetPlaylist(sl()));
+  sl.registerLazySingleton(() => CreatePlaylist(sl()));
+  sl.registerLazySingleton(() => UpdatePlaylist(sl()));
+  sl.registerLazySingleton(() => DeletePlaylist(sl()));
+  sl.registerLazySingleton(() => AddSongToPlaylist(sl()));
+  sl.registerLazySingleton(() => RemoveSongFromPlaylist(sl()));
+
+  sl.registerFactory(
+    () => PlaylistProvider(
+      getPlaylistsByUser: sl(),
+      createPlaylist: sl(),
+      addSongToPlaylist: sl(),
+      removeSongFromPlaylist: sl(),
+      deletePlaylist: sl(),
+    ),
+  );
+
+  // ================= FAVORITE =================
+  sl.registerLazySingleton<FavoriteRemoteDataSource>(
+    () => FavoriteRemoteDataSourceImpl(sl()),
+  );
+
+  sl.registerLazySingleton<FavoriteRepository>(
+    () => FavoriteRepositoryImpl(sl()),
+  );
+
+  sl.registerLazySingleton(() => GetFavoritesByUser(sl()));
+  sl.registerLazySingleton(() => AddToFavorites(sl()));
+  sl.registerLazySingleton(() => RemoveFromFavorites(sl()));
+  sl.registerLazySingleton(() => IsFavorite(sl()));
+
+  sl.registerFactory(
+    () => FavoriteProvider(
+      getFavoritesByUser: sl(),
+      addToFavorites: sl(),
+      removeFromFavorites: sl(),
+      isFavorite: sl(),
+    ),
+  );
 }

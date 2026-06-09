@@ -16,6 +16,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -26,17 +27,20 @@ class _RegisterPageState extends State<RegisterPage> {
       await authProvider.register(
         emailController.text.trim(),
         passwordController.text.trim(),
+        name: nameController.text.trim(),
       );
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Register Success")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Register Success")));
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -55,6 +59,8 @@ class _RegisterPageState extends State<RegisterPage> {
         children: [
           const VibeMusicLogo(),
           const SizedBox(height: 40),
+          AppTextField(controller: nameController, label: "Họ tên"),
+          const SizedBox(height: 16),
           AppTextField(controller: emailController, label: "Email"),
           const SizedBox(height: 16),
           AppTextField(
