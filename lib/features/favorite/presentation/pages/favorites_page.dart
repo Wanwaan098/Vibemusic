@@ -4,6 +4,8 @@ import 'package:music_app/features/favorite/presentation/providers/favorite_prov
 import 'package:music_app/features/song/presentation/user/providers/song_provider.dart';
 import 'package:music_app/features/song/presentation/user/pages/song_detail_page.dart';
 import 'package:music_app/core/widgets/user_sidebar.dart';
+import 'package:music_app/core/widgets/top_navbar.dart';
+import 'package:music_app/core/widgets/mini_player.dart';
 import 'package:music_app/features/song/domain/entities/song.dart';
 import 'package:music_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -15,8 +17,6 @@ class FavoritesPage extends StatefulWidget {
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
-  bool _isSidebarExpanded = false;
-
   @override
   void initState() {
     super.initState();
@@ -30,89 +30,100 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final favProvider = context.watch<FavoriteProvider>();
-    final songProvider = context.watch<SongProvider>();
-
-    final favoriteSongs = favProvider.favoriteSongIds
-        .map((id) {
-          try {
-            return songProvider.songs.firstWhere((s) => s.id == id);
-          } catch (e) {
-            return null;
-          }
-        })
-        .whereType<Song>()
-        .toList();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
-      body: Row(
+      key: scaffoldKey,
+      appBar: TopNavbar(
+        onMenuPressed: () {
+          scaffoldKey.currentState?.openDrawer();
+        },
+        onSearchPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Tìm kiếm - Tính năng sắp có")),
+          );
+        },
+      ),
+      drawer: UserSidebar(
+        onLogout: () => Navigator.pushReplacementNamed(context, '/'),
+      ),
+      body: Column(
         children: [
-          UserSidebar(
-            isExpanded: _isSidebarExpanded,
-            onToggle: () =>
-                setState(() => _isSidebarExpanded = !_isSidebarExpanded),
-            onLogout: () => Navigator.pushReplacementNamed(context, '/'),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppBar(
-                  title: const Text("Yêu thích"),
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  automaticallyImplyLeading: false,
-                ),
-                Expanded(
-                  child: favoriteSongs.isEmpty
-                      ? const Center(child: Text("Không có bài hát yêu thích"))
-                      : ListView.builder(
-                          itemCount: favoriteSongs.length,
-                          itemBuilder: (context, index) {
-                            final song = favoriteSongs[index];
+          // ================= FAVORITE SONGS LIST =================
+          Expanded(child: _buildFavoriteSongsList()),
 
-                            return ListTile(
-                              leading: Image.network(
-                                song.coverUrl,
-                                width: 50,
-                                height: 50,
-                              ),
-                              title: Text(song.title),
-                              subtitle: Text(song.artistName),
-                              trailing: IconButton(
-                                icon: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  final authProvider = context
-                                      .read<AuthProvider>();
-                                  final userId = authProvider.user?.uid ?? '';
-                                  favProvider.toggleFavorite(userId, song.id);
-                                },
-                              ),
-                              onTap: () {
-                                songProvider.playSongFromList(
-                                  song,
-                                  playlist: favoriteSongs,
-                                );
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        SongDetailPage(songId: song.id),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
+          // ================= MINI PLAYER =================
+          Selector<SongProvider, (Song?, bool)>(
+            selector: (_, provider) =>
+                (provider.currentSong, provider.showMiniPlayer),
+            builder: (context, data, _) {
+              if (data.$1 == null || !data.$2) {
+                return const SizedBox();
+              }
+              return const MiniPlayer();
+            },
           ),
         ],
       ),
+    );
+  }
+
+  // ✅ Widget riêng cho FavoriteSongsList - tối ưu rebuild
+  Widget _buildFavoriteSongsList() {
+    return Selector<FavoriteProvider, Set<String>>(
+      selector: (_, provider) => provider.favoriteSongIds,
+      builder: (context, favoriteSongIds, _) {
+        final songProvider = context.read<SongProvider>();
+
+        final favoriteSongs = favoriteSongIds
+            .map((id) {
+              try {
+                return songProvider.songs.firstWhere((s) => s.id == id);
+              } catch (e) {
+                return null;
+              }
+            })
+            .whereType<Song>()
+            .toList();
+
+        if (favoriteSongs.isEmpty) {
+          return const Center(child: Text("Không có bài hát yêu thích"));
+        }
+
+        return ListView.builder(
+          itemCount: favoriteSongs.length,
+          itemBuilder: (context, index) {
+            final song = favoriteSongs[index];
+
+            return ListTile(
+              leading: Image.network(song.coverUrl, width: 50, height: 50),
+              title: Text(song.title),
+              subtitle: Text(song.artistName),
+              trailing: IconButton(
+                icon: const Icon(Icons.favorite, color: Colors.red),
+                onPressed: () {
+                  final authProvider = context.read<AuthProvider>();
+                  final userId = authProvider.user?.uid ?? '';
+                  context.read<FavoriteProvider>().toggleFavorite(
+                    userId,
+                    song.id,
+                  );
+                },
+              ),
+              onTap: () {
+                final songProvider = context.read<SongProvider>();
+                songProvider.playSongFromList(song, playlist: favoriteSongs);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SongDetailPage(songId: song.id),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

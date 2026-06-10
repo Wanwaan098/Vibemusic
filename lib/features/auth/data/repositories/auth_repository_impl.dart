@@ -10,9 +10,15 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserEntity> login(String email, String password) async {
     final user = await remoteDataSource.login(email, password);
-    final role = await remoteDataSource.getRole(user.uid);
+    final userData = await remoteDataSource.getUserData(user.uid);
 
-    return UserEntity(uid: user.uid, email: user.email!, role: role);
+    return UserEntity(
+      uid: user.uid,
+      email: user.email!,
+      role: userData['role'] ?? "user",
+      name: userData['name'],
+      avatarUrl: userData['avatarUrl'],
+    );
   }
 
   @override
@@ -28,6 +34,19 @@ class AuthRepositoryImpl implements AuthRepository {
       email: user.email!,
       role: "user",
       name: name,
+    );
+  }
+
+  @override
+  Future<void> updateUserProfile(
+    String uid, {
+    String? name,
+    String? avatarUrl,
+  }) async {
+    await remoteDataSource.updateUserProfile(
+      uid,
+      name: name,
+      avatarUrl: avatarUrl,
     );
   }
 

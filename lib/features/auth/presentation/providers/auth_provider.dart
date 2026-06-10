@@ -43,6 +43,37 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateProfile({String? name, String? avatarUrl}) async {
+    if (_user == null) throw Exception("User not logged in");
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await loginUser.repository.updateUserProfile(
+        _user!.uid,
+        name: name,
+        avatarUrl: avatarUrl,
+      );
+
+      // Update local user object
+      _user = UserEntity(
+        uid: _user!.uid,
+        email: _user!.email,
+        role: _user!.role,
+        name: name ?? _user!.name,
+        avatarUrl: avatarUrl ?? _user!.avatarUrl,
+      );
+
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void logout() {
     _user = null;
     notifyListeners();

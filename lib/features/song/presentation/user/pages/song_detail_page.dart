@@ -370,7 +370,16 @@ class _SongDetailPageState extends State<SongDetailPage> {
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
           onPressed: () {
             context.read<SongProvider>().showMini();
-            Navigator.pop(context);
+            // ✅ Fix: Try pop, if fail fallback to home
+            try {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            } catch (e) {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
           },
         ),
         actions: [

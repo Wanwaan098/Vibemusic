@@ -36,6 +36,25 @@ class AuthRemoteDataSource {
     return doc.data()?["role"] ?? "user";
   }
 
+  Future<Map<String, dynamic>> getUserData(String uid) async {
+    final doc = await firestore.collection("users").doc(uid).get();
+    return doc.data() ?? {};
+  }
+
+  Future<void> updateUserProfile(
+    String uid, {
+    String? name,
+    String? avatarUrl,
+  }) async {
+    final updateData = <String, dynamic>{};
+    if (name != null) updateData['name'] = name;
+    if (avatarUrl != null) updateData['avatarUrl'] = avatarUrl;
+
+    if (updateData.isNotEmpty) {
+      await firestore.collection("users").doc(uid).update(updateData);
+    }
+  }
+
   Future<void> logout() async {
     await auth.signOut();
   }

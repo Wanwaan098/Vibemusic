@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:music_app/core/widgets/top_navbar.dart';
+import 'package:music_app/core/widgets/user_sidebar.dart';
 import '../providers/auth_provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -14,6 +16,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _emailController;
   late TextEditingController _userIdController;
   late TextEditingController _roleController;
+  late TextEditingController _avatarUrlController;
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -33,6 +36,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _roleController = TextEditingController(
       text: authProvider.user?.role ?? '',
     );
+    _avatarUrlController = TextEditingController(
+      text: authProvider.user?.avatarUrl ?? '',
+    );
   }
 
   @override
@@ -41,29 +47,43 @@ class _ProfilePageState extends State<ProfilePage> {
     _emailController.dispose();
     _userIdController.dispose();
     _roleController.dispose();
+    _avatarUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: Implement update user profile in AuthProvider
-      // For now, just update the local state
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thông tin đã được lưu (demo mode)')),
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.updateProfile(
+        name: _nameController.text.trim(),
+        avatarUrl: _avatarUrlController.text.trim().isEmpty
+            ? null
+            : _avatarUrlController.text.trim(),
       );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Thông tin đã được lưu')));
       setState(() => _isEditing = false);
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
         final user = authProvider.user;
@@ -75,10 +95,19 @@ class _ProfilePageState extends State<ProfilePage> {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Quản lý tài khoản'),
-            backgroundColor: Colors.deepPurple,
-            foregroundColor: Colors.white,
+          key: scaffoldKey,
+          appBar: TopNavbar(
+            onMenuPressed: () {
+              scaffoldKey.currentState?.openDrawer();
+            },
+            onSearchPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Tìm kiếm - Tính năng sắp có")),
+              );
+            },
+          ),
+          drawer: UserSidebar(
+            onLogout: () => Navigator.pushReplacementNamed(context, '/'),
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -99,19 +128,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             : null,
                       ),
                       const SizedBox(height: 15),
-                      if (!_isEditing)
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Implement avatar picker
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Avatar picker sẽ được cập nhật'),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.camera_alt),
-                          label: const Text('Thay đổi ảnh'),
-                        ),
                     ],
                   ),
                 ),
@@ -196,6 +212,26 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           filled: true,
                           fillColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Avatar URL Field
+                      TextField(
+                        controller: _avatarUrlController,
+                        readOnly: !_isEditing,
+                        maxLines: null,
+                        decoration: InputDecoration(
+                          labelText: 'URL Ảnh đại diện',
+                          prefixIcon: const Icon(Icons.image),
+                          hintText: 'Dán link URL ảnh (ví dụ: https://...)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: _isEditing
+                              ? Colors.white
+                              : Colors.grey[200],
                         ),
                       ),
                     ],
