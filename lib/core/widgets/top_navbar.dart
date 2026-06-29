@@ -22,12 +22,23 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
         onPressed: onMenuPressed,
         tooltip: 'Menu',
       ),
-      title: const Text(
-        'Music App',
-        style: TextStyle(
-          color: AppColors.purple,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
+      title: InkWell(
+        onTap: () {
+          if (ModalRoute.of(context)?.settings.name != '/home') {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            );
+          }
+        },
+        child: const Text(
+          'Vibe Music',
+          style: TextStyle(
+            color: AppColors.purple,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
       ),
       actions: [

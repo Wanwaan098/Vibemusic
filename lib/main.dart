@@ -11,6 +11,7 @@ import 'features/auth/presentation/providers/auth_provider.dart';
 
 // ================= ARTIST =================
 import 'features/artist/presentation/admin/presentation/providers/artist_manager_provider.dart';
+import 'package:music_app/features/artist/presentation/user/providers/artist_viewer_provider.dart';
 
 // ================= SONG USER =================
 import 'features/song/presentation/user/providers/song_provider.dart';
@@ -32,6 +33,7 @@ import 'package:music_app/core/services/audio_player_service.dart';
 import 'features/favorite/presentation/providers/favorite_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
 
+import 'package:music_app/features/album/presentation/providers/album_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -67,6 +69,7 @@ class MyApp extends StatelessWidget {
 
         // ================= ARTIST =================
         ChangeNotifierProvider(create: (_) => di.sl<ArtistManagerProvider>()),
+        ChangeNotifierProvider(create: (_) => di.sl<ArtistViewerProvider>()),
 
         // ================= AUDIO SINGLETON =================
         Provider<AudioPlayerService>(
@@ -99,6 +102,8 @@ class MyApp extends StatelessWidget {
 
         // ================= PLAYLIST =================
         ChangeNotifierProvider(create: (_) => di.sl<PlaylistProvider>()),
+        // ================= ALBUM =================
+        ChangeNotifierProvider(create: (_) => di.sl<AlbumProvider>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

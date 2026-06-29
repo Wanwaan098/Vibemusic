@@ -54,19 +54,15 @@ class _PlaylistDetailPageState extends State<PlaylistDetailPage> {
         children: [
           // ================= PLAYLIST SONGS LIST =================
           Expanded(child: _buildPlaylistSongsList()),
-
-          // ================= MINI PLAYER =================
-          Selector<SongProvider, (Song?, bool)>(
-            selector: (_, provider) =>
-                (provider.currentSong, provider.showMiniPlayer),
-            builder: (context, data, _) {
-              if (data.$1 == null || !data.$2) {
-                return const SizedBox();
-              }
-              return const MiniPlayer();
-            },
-          ),
         ],
+      ),
+      bottomNavigationBar: Consumer<SongProvider>(
+        builder: (context, provider, _) {
+          if (provider.currentSong == null || !provider.showMiniPlayer) {
+            return const SizedBox.shrink();
+          }
+          return const MiniPlayer();
+        },
       ),
     );
   }

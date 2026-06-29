@@ -9,6 +9,7 @@ import 'package:music_app/features/artist/presentation/user/providers/artist_vie
 import 'package:music_app/features/favorite/presentation/providers/favorite_provider.dart';
 import 'package:music_app/features/playlist/presentation/providers/playlist_provider.dart';
 import 'package:music_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:music_app/features/song/domain/entities/song.dart';
 import 'package:music_app/injection_container.dart' as di;
 
 class SongDetailPage extends StatefulWidget {
@@ -41,11 +42,19 @@ class _SongDetailPageState extends State<SongDetailPage> {
       final songProvider = context.read<SongProvider>();
 
       if (!widget.fromMiniPlayer) {
-        await songProvider.loadSongDetail(widget.songId);
+        if (songProvider.currentSong?.id != widget.songId) {
+          final song = _findSongById(songProvider.songs, widget.songId);
 
-        final song = songProvider.currentSong;
-        if (song != null && audio.currentUrl != song.audioUrl) {
-          await audio.playNew(song.audioUrl);
+          if (song != null) {
+            await songProvider.playSongFromList(song);
+          } else {
+            await songProvider.loadSongDetail(widget.songId);
+
+            final loadedSong = songProvider.currentSong;
+            if (loadedSong != null && audio.currentUrl != loadedSong.audioUrl) {
+              await audio.playNew(loadedSong.audioUrl);
+            }
+          }
         }
       }
 
@@ -55,6 +64,15 @@ class _SongDetailPageState extends State<SongDetailPage> {
       // Get user ID - you might get this from AuthProvider
       // For now, using a placeholder - update with actual user ID
     });
+  }
+
+  Song? _findSongById(List<Song> songs, String songId) {
+    for (final song in songs) {
+      if (song.id == songId) {
+        return song;
+      }
+    }
+    return null;
   }
 
   int _getLyricIndexByTime(double seconds, List lyrics) {
@@ -209,6 +227,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                             playlistProvider.addSongToPlaylistLocal(
                               playlist.id,
                               song.id,
+                              thumbnailUrl: song.coverUrl,
                             );
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -287,6 +306,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                       playlistProvider.addSongToPlaylistLocal(
                         playlist.id,
                         song.id,
+                        thumbnailUrl: song.coverUrl,
                       );
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -882,10 +902,7 @@ class _SongDetailPageState extends State<SongDetailPage> {
                               ),
                             ),
                       onTap: () {
-                        provider.playSongFromList(
-                          song,
-                          playlist: provider.originalPlaylist,
-                        );
+                        provider.playSongAtCurrentIndex(index);
                         Navigator.pop(context);
                       },
                     );

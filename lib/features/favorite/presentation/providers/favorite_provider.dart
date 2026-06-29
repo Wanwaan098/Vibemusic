@@ -18,6 +18,10 @@ class FavoriteProvider extends ChangeNotifier {
   bool isLoading = false;
 
   Future<void> loadFavorites(String userId) async {
+    // ✅ SECURITY FIX: Clear old favorites before loading new user's favorites
+    // This prevents data leakage when switching accounts
+    favoriteSongIds.clear();
+
     isLoading = true;
     notifyListeners();
 
@@ -34,17 +38,30 @@ class FavoriteProvider extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(String userId, String songId) async {
+    // Prepare immutable update so Selectors detect changes
+    final previous = Set<String>.from(favoriteSongIds);
+    final updated = Set<String>.from(favoriteSongIds);
+
+    final removing = updated.contains(songId);
+    if (removing) {
+      updated.remove(songId);
+    } else {
+      updated.add(songId);
+    }
+
+    favoriteSongIds = updated;
+    notifyListeners();
+
     try {
-      if (favoriteSongIds.contains(songId)) {
-        favoriteSongIds.remove(songId);
-        notifyListeners();
+      if (removing) {
         await removeFromFavorites(userId, songId);
       } else {
-        favoriteSongIds.add(songId);
-        notifyListeners();
         await addToFavorites(userId, songId);
       }
     } catch (e) {
+      // revert to previous state on failure
+      favoriteSongIds = previous;
+      notifyListeners();
       rethrow;
     }
   }

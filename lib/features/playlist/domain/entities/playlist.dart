@@ -14,4 +14,22 @@ class Playlist {
     required this.songIds,
     required this.createdAt,
   });
+
+  Playlist copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    String? thumbnailUrl,
+    List<String>? songIds,
+    DateTime? createdAt,
+  }) {
+    return Playlist(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      songIds: songIds ?? List<String>.from(this.songIds),
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

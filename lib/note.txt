@@ -1,0 +1,50 @@
+admin_sidebar.dart cần thêm hai mục mới vào danh sách điều hướng là quản lý album và quản lý playlist , kết nối router đầy đủ, Hãy viết code Flutter theo chuẩn **Clean Architecture** (Data, Domain, Presentation layers) cho chức năng **Admin Quản lý Album** và **Admin Quản lý Playlist**, đồng thời cập nhật trang **Chi tiết Nghệ sĩ** và **Trang chủ** của User.
+**1. Yêu cầu chung:**
+
+- CSDL: **Firebase **.
+- Hình ảnh: Sử dụng trường **Link URL (String)**, không upload file.
+- UI Admin: Đồng nhất với ảnh hiện tại, sử dụng **Dialog** để Thêm/Sửa**Chức năng Quản lý Album (Admin) & Hiển thị (User):**
+
+- **Data (Admin):** Collection `albums` gồm `title`, `artist_id` (Reference), `cover_url` (Link), `release_year`.
+- **Luồng Admin:** Thêm/Sửa album, chọn nghệ sĩ từ danh sách có sẵn qua Dropdown.
+- **Luồng User (Artist Detail):** Xây dựng thanh menu ngang chuyển đổi giữa 'Bài hát' và 'Album'. Tab được chọn sẽ có **đường gạch chân màu tím**. Khi chọn tab 'Album', hiển thị danh sách album của nghệ sĩ đó và danh sách bài hát của album đã chọn bằng cách lọc**Chức năng Quản lý Playlist Hệ thống (Admin) & Hiển thị (User):**
+
+- **Data (Admin):** Collection `playlists` gồm `name`, `description`, `is_system: true`, `thumbnail` (Link), `priority` (Number), `song_count`.
+- **Luồng Admin:**Tạo playlist với `is_system = true` để hiển thị lên trang chủ hệ thống.
+- Quản lý danh sách bài hát trong playlist qua sub-collection `playlist_songs` gồm `song_ref` và `order`.
+
+- **Luồng User (Homepage):** Hiển thị các Playlist có `is_system == true` theo thứ tự `priority`**Cập nhật Quản lý Kho nhạc (Admin):**. Hiển thị danh sách này trên Homepage dưới dạng các danh sách trượt ngang (Horizontal ListView). Hiển thị `thumbnail` và `name` của playlist.
+**Cập nhật form Quản lý kho nhạc hiện tại: Thêm một Dropdown chọn Album (danh sách album phụ thuộc vào Nghệ sĩ được chọn ở dropdown Artist) vào Modal "Add Song" / "Edit Song".
+- Cho phép chọn Album từ danh sách hoặc để trống nếu là single.**Liên kết bài hát vào Album:** Khi Admin tạo bài hát mới, trường `album_id` phải được lưu dưới dạng **Reference** để User có thể lấy danh sách bài hát thuộc album đó một cách chính xác
+
+**Yêu cầu UI:**
+
+1. Giữ nguyên các trường đã có: Tên Playlist, Mô tả, URL Thumbnail, Thứ tự (Priority).
+2. **Thêm mục 'Quản lý bài hát':**Thêm một `Search Bar` để tìm kiếm bài hát từ collection `songs` trong Firestore.
+3. Kết quả tìm kiếm hiển thị dưới dạng danh sách rút gọn (Tên bài hát - Nghệ sĩ). Admin nhấn vào để thêm bài hát vào danh sách chờ.
+4. Hiển thị danh sách các bài hát đã chọn phía dưới Search Bar. Mỗi bài hát hiển thị kèm icon xóa để loại bỏ khỏi danh sách.
+
+**Yêu cầu Logic & Data (Clean Architecture):**
+
+1. **Dữ liệu lưu vào Firestore**1. **Validation:**Khi nhấn 'Lưu', kiểm tra nếu danh sách bài hát trống thì báo lỗi: 'Playlist nổi bật phải có ít nhất 1 bài hát'.
+2. Sử dụng `Image.network` để hiển thị preview thumbnail từ link URL đã nhập.- **Trường ****is_system****:** AI phải luôn gán giá trị này là `true` để playlist hiện ra ở trang chủ (Homepage) của người dùng.
+- **Trường ****owner_id****:** Luôn để giá trị là `'admin'`.
+- **Hiển thị:** Sau khi lưu, bài hát trong playlist sẽ được User truy cập thông qua sub-collection `playlist_songs` theo thứ tự của trường . Trong luồng sự kiện chính của việc tạo hoặc cập nhật playlist hệ thống, sau khi nhập các thông tin cơ bản, Admin sẽ thực hiện các thao tác cụ thể:,
+
+- **Ô tìm kiếm bài hát:** Hệ thống cung cấp một thanh công cụ cho phép Admin nhập từ khóa. Admin có thể **tìm kiếm bài hát theo tên hoặc theo nghệ sĩ** từ kho nhạc hiện có trong hệ thống.,
+- **Hiển thị kết quả:** Danh sách các bài hát khớp với từ khóa sẽ hiện ra. Mỗi mục bài hát thường hiển thị kèm theo tên bài, nghệ sĩ và ảnh bìa để Admin dễ dàng nhận diện.
+- **Thao tác chọn:** Admin nhấn vào nút "Thêm" hoặc chọn vào checkbox cạnh mỗi bài hát để đưa chúng vào **danh sách chờ của playlist**.
+- **Quản lý danh sách đã chọn:** Các bài hát sau khi chọn sẽ xuất hiện trong một danh sách riêng ngay trên form. Tại đây, Admin có thể:**Xóa:** Loại bỏ những bài hát đã chọn nhầm khỏi danh sách.
+- **Sắp xếp thứ tự:** Thay đổi vị trí của các bài hát để xác định bài nào sẽ phát trước, bài nào phát sau (tương ứng với trường `order` trong CSDL).
+
+2. Xử lý Dữ liệu và Ràng buộc logic
+Khi Admin nhấn "Lưu" hoặc "Cập nhật", hệ thống sẽ thực hiện các bước kiểm tra và ghi dữ liệu:
+
+- **Kiểm tra số lượng tối thiểu:** Hệ thống bắt buộc playlist nổi bật phải có **ít nhất 1 bài hát** mới cho phép lưu. Nếu danh sách trống, hệ thống sẽ báo lỗi và không thực hiện thao tác.,
+- **Cập nhật ****song_count****:** Hệ thống tự động đếm tổng số lượng bài hát đã được chọn để lưu vào trường `song_count` trong collection `playlists`, giúp hiển thị nhanh số lượng bài mà không cần đếm lại mảng sau này.
+- **Tạo bản ghi trong Sub-collection:** Với mỗi bài hát được chọn, hệ thống tạo một document mới trong sub-collection `playlist_songs` của playlist đó với các thông tin:`song_ref`: Tạo một **tham chiếu (Reference)** trực tiếp đến ID bài hát trong collection `songs`.
+- `added_at`: Lưu mốc thời gian hiện tại để ghi nhận lúc bài hát được đưa vào playlist.
+- `order`: Lưu giá trị số thứ tự mà Admin đã sắp xếp trên giao diện.
+
+3. Mục đích hiển thị
+Việc Admin lựa chọn kĩ lưỡng các bài hát này nhằm mục đích **tạo nội dung nổi bật hiển thị trên trang chủ(Homepage)** của người dùng., Thứ tự bài hát và vị trí hiển thị của chính playlist đó (trường `priority`) sẽ quyết định trải nghiệm khám phá nhạc của User khi truy cập ứng dụng

@@ -1,0 +1,18 @@
+code chức năng tìm kiếm: (Light Mode, tone trắng & tím chủ đạo) khi người dùng ấn icon tìm kiếm trên thanh top navbar thì hiện lên trang Tìm kiếm và Kết quả tìm kiếm, gắn Miniplayer cố định ở đáy. Chi tiết gồm:
+
+Thành phần cố định:
+
+Top Bar: Ô search bo góc màu xám nhạt, bên phải ngoài cùng có chữ 'Hủy'.
+
+nhớ gắn Miniplayer
+
+Trạng thái 1 (Chờ tìm kiếm): Hiển thị 'Lịch sử tìm kiếm' dạng các thẻ (Chips) bo tròn, góc phải có icon Thùng rác để xóa lịch sử.
+
+Trạng thái 2 (Đã có kết quả):
+
+Tab điều hướng: Tất cả, Bài hát, Playlist, Album, Nghệ sĩ (Tab active có gạch chân màu Tím).
+
+Khối Đề xuất: Hiện Nghệ sĩ (Avatar tròn, tên nghệ sĩ, số bài hát) hoặc Album (Thumbnail vuông, tên tác giả, số bài hát trong album), playlist hệ thống(ảnh bìa ,tên playlist ,số lượng bài hát). khi người dùng bấm vào thì điều hướng đến các trang danh sách bài hát tương ứng
+
+Khối Bài hát:  Danh sách bài hát dạng dòng: Thumbnail, Tên bài, Tên ca sĩ, icon 3 chấm ở cuối.
+

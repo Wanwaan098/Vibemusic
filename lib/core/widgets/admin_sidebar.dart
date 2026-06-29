@@ -101,6 +101,34 @@ class AdminSidebar extends StatelessWidget {
                 },
               ),
 
+              // ALBUMS
+              ListTile(
+                selected: isActive('/admin/albums'),
+                selectedTileColor: AppColors.purple.withOpacity(0.15),
+                selectedColor: AppColors.purple,
+                leading: const Icon(Icons.album),
+                title: isExpanded ? const Text("Quản lý album") : null,
+                onTap: () {
+                  if (!isActive('/admin/albums')) {
+                    Navigator.pushReplacementNamed(context, '/admin/albums');
+                  }
+                },
+              ),
+
+              // PLAYLISTS
+              ListTile(
+                selected: isActive('/admin/playlists'),
+                selectedTileColor: AppColors.purple.withOpacity(0.15),
+                selectedColor: AppColors.purple,
+                leading: const Icon(Icons.playlist_play),
+                title: isExpanded ? const Text("Quản lý playlist") : null,
+                onTap: () {
+                  if (!isActive('/admin/playlists')) {
+                    Navigator.pushReplacementNamed(context, '/admin/playlists');
+                  }
+                },
+              ),
+
               const Spacer(),
 
               // LOGOUT

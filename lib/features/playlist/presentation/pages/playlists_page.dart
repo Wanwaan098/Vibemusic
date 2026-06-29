@@ -8,6 +8,7 @@ import 'package:music_app/core/widgets/mini_player.dart';
 import 'package:music_app/features/playlist/presentation/pages/playlist_detail_page.dart';
 import 'package:music_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:music_app/features/song/domain/entities/song.dart';
+import 'package:music_app/features/playlist/domain/entities/playlist.dart';
 
 class PlaylistsPage extends StatefulWidget {
   const PlaylistsPage({super.key});
@@ -35,14 +36,16 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
     });
   }
 
-  // Helper method to get thumbnail URL for a playlist
-  String? _getPlaylistThumbnail(List<String> songIds, List<dynamic> songs) {
-    if (songIds.isEmpty || songs.isEmpty) return null;
+  // Helper method to get thumbnail URL for a playlist.
+  // Prefer explicit playlist.thumbnailUrl; otherwise use the most recently added song's cover.
+  String? _getPlaylistThumbnail(Playlist playlist, List<Song> songs) {
+    if (playlist.thumbnailUrl != null && playlist.thumbnailUrl!.isNotEmpty) {
+      return playlist.thumbnailUrl;
+    }
 
-    // Get the last song ID in the playlist
-    final lastSongId = songIds.last;
+    if (playlist.songIds.isEmpty || songs.isEmpty) return null;
 
-    // Find the song with this ID
+    final lastSongId = playlist.songIds.last;
     try {
       final song = songs.firstWhere((s) => s.id == lastSongId);
       return song.coverUrl;
@@ -81,35 +84,28 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
         children: [
           // ================= PLAYLISTS LIST =================
           Expanded(child: _buildPlaylistsList()),
-
-          // ================= MINI PLAYER =================
-          Selector<SongProvider, (Song?, bool)>(
-            selector: (_, provider) =>
-                (provider.currentSong, provider.showMiniPlayer),
-            builder: (context, data, _) {
-              if (data.$1 == null || !data.$2) {
-                return const SizedBox();
-              }
-              return const MiniPlayer();
-            },
-          ),
         ],
+      ),
+      bottomNavigationBar: Consumer<SongProvider>(
+        builder: (context, provider, _) {
+          if (provider.currentSong == null || !provider.showMiniPlayer) {
+            return const SizedBox.shrink();
+          }
+          return const MiniPlayer();
+        },
       ),
     );
   }
 
   // ✅ Widget riêng cho PlaylistsList - tối ưu rebuild
   Widget _buildPlaylistsList() {
-    return Selector<PlaylistProvider, bool>(
-      selector: (_, provider) => provider.isLoading,
-      builder: (context, isLoading, _) {
-        final playlistProvider = context.read<PlaylistProvider>();
-
-        if (isLoading) {
+    return Consumer<PlaylistProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (playlistProvider.playlists.isEmpty) {
+        if (provider.playlists.isEmpty) {
           return const Center(child: Text("Không có playlist nào"));
         }
 
@@ -123,17 +119,17 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
     return Selector<PlaylistProvider, List>(
       selector: (_, provider) => provider.playlists,
       builder: (context, playlists, _) {
-        final songProvider = context.read<SongProvider>();
+        final songProvider = context.watch<SongProvider>();
 
         return ListView.builder(
           itemCount: playlists.length,
           itemBuilder: (context, index) {
-            final playlist = playlists[index];
+            final playlist = playlists[index] as Playlist;
 
-            // Get thumbnail from the latest song in playlist
+            // Get thumbnail from playlist.thumbnailUrl or latest song
             final thumbnailUrl = _getPlaylistThumbnail(
-              playlist.songIds,
-              songProvider.songs,
+              playlist,
+              songProvider.songs.cast<Song>(),
             );
 
             return Card(
@@ -169,16 +165,18 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
                     ),
                   );
                 },
-                trailing: PopupMenuButton(
+                trailing: PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    final provider = context.read<PlaylistProvider>();
+                    if (value == 'delete') {
+                      await provider.deletePlaylistLocal(playlist.id);
+                    } else if (value == 'rename') {
+                      _showRenamePlaylistDialog(context, playlist);
+                    }
+                  },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                      onTap: () async {
-                        await context
-                            .read<PlaylistProvider>()
-                            .deletePlaylistLocal(playlist.id);
-                      },
-                      child: const Text("Delete"),
-                    ),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    const PopupMenuItem(value: 'rename', child: Text('Rename')),
                   ],
                 ),
               ),
@@ -219,6 +217,40 @@ class _PlaylistsPageState extends State<PlaylistsPage> {
               }
             },
             child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRenamePlaylistDialog(BuildContext context, dynamic playlist) {
+    final controller = TextEditingController(text: playlist.name ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Rename Playlist"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Playlist name"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                await context.read<PlaylistProvider>().updatePlaylistNameLocal(
+                  playlist.id,
+                  controller.text,
+                );
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Save"),
           ),
         ],
       ),

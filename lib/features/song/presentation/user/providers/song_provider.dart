@@ -79,11 +79,9 @@ class SongProvider extends ChangeNotifier {
   // ================= PLAY =================
 
   Future<void> playSongFromList(Song song, {List<Song>? playlist}) async {
-    final isSameSong = currentSong?.id == song.id;
-
     if (playlist != null) {
       originalPlaylist = List.from(playlist);
-    } else if (originalPlaylist.isEmpty) {
+    } else {
       originalPlaylist = List.from(songs);
     }
 
@@ -98,17 +96,29 @@ class SongProvider extends ChangeNotifier {
 
     currentSong = song;
 
-    showMiniPlayer = false;
+    showMiniPlayer = true;
 
     notifyListeners();
 
     await increasePlayCount(song.id);
 
-    if (isSameSong) {
-      await audio.playNew(song.audioUrl);
-    } else {
-      await audio.playNew(song.audioUrl);
-    }
+    await audio.playNew(song.audioUrl);
+
+    bindAudio(audio);
+  }
+
+  Future<void> playSongAtCurrentIndex(int index) async {
+    if (index < 0 || index >= currentPlaylist.length) return;
+
+    final song = currentPlaylist[index];
+    currentSongIndex = index;
+    currentSong = song;
+    showMiniPlayer = true;
+
+    notifyListeners();
+
+    await increasePlayCount(song.id);
+    await audio.playNew(song.audioUrl);
 
     bindAudio(audio);
   }

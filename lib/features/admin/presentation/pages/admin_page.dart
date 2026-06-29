@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 import '../../../../core/widgets/admin_sidebar.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
+import '../../../admin/presentation/pages/admin_dashboard_page.dart';
+import '../../../admin/presentation/providers/admin_stats_provider.dart';
+import '../../../../injection_container.dart' as di;
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -21,6 +23,28 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 700;
+
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin'), centerTitle: true),
+        drawer: Drawer(
+          child: AdminSidebar(
+            isExpanded: true,
+            onToggle: () => Navigator.pop(context),
+            onLogout: () => logout(context),
+          ),
+        ),
+        body: SafeArea(
+          child: ChangeNotifierProvider(
+            create: (_) => di.sl<AdminStatsProvider>(),
+            child: const AdminDashboardPage(),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -34,11 +58,9 @@ class _AdminPageState extends State<AdminPage> {
               onTap: () {
                 if (isExpanded) setState(() => isExpanded = false);
               },
-              child: const Center(
-                child: Text(
-                  "Welcome Admin",
-                  style: TextStyle(fontSize: 24),
-                ),
+              child: ChangeNotifierProvider(
+                create: (_) => di.sl<AdminStatsProvider>(),
+                child: const AdminDashboardPage(),
               ),
             ),
           ),
@@ -50,8 +72,7 @@ class _AdminPageState extends State<AdminPage> {
             left: 0,
             child: AdminSidebar(
               isExpanded: isExpanded,
-              onToggle: () =>
-                  setState(() => isExpanded = !isExpanded),
+              onToggle: () => setState(() => isExpanded = !isExpanded),
               onLogout: () => logout(context),
             ),
           ),

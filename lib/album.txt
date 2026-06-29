@@ -1,0 +1,7 @@
+Xây dựng luồng tính năng Album cho user:
+
+trang 'Chi tiết nghệ sĩ'(user) hiển thị Danh sách Album của nghệ sĩ đó: Tại màn hình chi tiết của một nghệ sĩ, hiển thị thêm danh sách các album của nghệ sĩ đó(ảnh album, số lượng bài hát có trong album đó).
+
+Điều hướng (Navigation): Khi người dùng nhấn chọn một album bất kỳ trong danh sách, ứng dụng phải điều hướng sang 'Trang danh sách bài hát của album đó' (Album Detail Page).
+
+Trang Danh sách bài hát: Tại màn hình này, hãy hiển thị thông tin của album đã chọn (tên album, ảnh bìa, năm phát hành, tổng bài hát) và liệt kê danh sách các bài hát thuộc album đó gắn thêm mini_player.dart vào trang này, khi nhấn vào bài hát thì hiện trang phát nhạc của bài hát đó (song_detail_page.dart (danh sách phát chỉ hiện các bài hát trong album đó theo các chế độ phát)), các tính năng còn lại giữ nguyên không thay đổi . sửa lỗi tiếp đi

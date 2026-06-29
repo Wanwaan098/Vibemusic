@@ -20,8 +20,18 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
     Future.microtask(() {
-      // Load favorites for current user
+      // ✅ Load songs first so favorites can be matched to song objects
+      final songProvider = context.read<SongProvider>();
+      if (songProvider.songs.isEmpty) {
+        songProvider.loadSongs();
+      }
+
+      // ✅ Load favorites for current user
       final authProvider = context.read<AuthProvider>();
       final userId = authProvider.user?.uid ?? '';
       context.read<FavoriteProvider>().loadFavorites(userId);
@@ -51,19 +61,15 @@ class _FavoritesPageState extends State<FavoritesPage> {
         children: [
           // ================= FAVORITE SONGS LIST =================
           Expanded(child: _buildFavoriteSongsList()),
-
-          // ================= MINI PLAYER =================
-          Selector<SongProvider, (Song?, bool)>(
-            selector: (_, provider) =>
-                (provider.currentSong, provider.showMiniPlayer),
-            builder: (context, data, _) {
-              if (data.$1 == null || !data.$2) {
-                return const SizedBox();
-              }
-              return const MiniPlayer();
-            },
-          ),
         ],
+      ),
+      bottomNavigationBar: Consumer<SongProvider>(
+        builder: (context, provider, _) {
+          if (provider.currentSong == null || !provider.showMiniPlayer) {
+            return const SizedBox.shrink();
+          }
+          return const MiniPlayer();
+        },
       ),
     );
   }
@@ -73,7 +79,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     return Selector<FavoriteProvider, Set<String>>(
       selector: (_, provider) => provider.favoriteSongIds,
       builder: (context, favoriteSongIds, _) {
-        final songProvider = context.read<SongProvider>();
+        final songProvider = context.watch<SongProvider>();
 
         final favoriteSongs = favoriteSongIds
             .map((id) {

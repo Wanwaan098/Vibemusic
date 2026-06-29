@@ -34,16 +34,39 @@ import 'features/song/domain/usecases/delete_song.dart';
 import 'features/song/domain/usecases/search_songs.dart';
 import 'features/song/domain/usecases/increase_play_count.dart';
 
+// ================= SONG PROVIDERS =================
+import 'package:music_app/features/song/presentation/user/providers/song_provider.dart';
+import 'package:music_app/features/song/presentation/admin/providers/song_manager_provider.dart';
+
 // ================= ARTIST PROVIDER =================
 import 'package:music_app/features/artist/presentation/admin/presentation/providers/artist_manager_provider.dart';
 import 'package:music_app/features/artist/presentation/user/providers/artist_viewer_provider.dart';
+
+// ================= ALBUM =================
+import 'features/album/data/datasources/album_remote_data_source.dart';
+import 'features/album/data/repositories/album_repository_impl.dart';
+import 'features/album/domain/repositories/album_repository.dart';
+import 'features/album/domain/usecases/get_albums.dart';
+import 'features/album/domain/usecases/get_albums_by_artist.dart';
+import 'features/album/domain/usecases/add_album.dart';
+import 'features/album/domain/usecases/update_album.dart';
+import 'features/album/domain/usecases/delete_album.dart';
+import 'package:music_app/features/album/presentation/providers/album_provider.dart';
+// ================= ADMIN =================
+import 'features/admin/domain/usecases/get_admin_stats.dart';
+import 'package:music_app/features/admin/presentation/providers/admin_stats_provider.dart';
 
 // ================= PLAYLIST =================
 import 'features/playlist/data/datasources/playlist_remote_data_source.dart';
 import 'features/playlist/data/repositories/playlist_repository_impl.dart';
 import 'features/playlist/domain/repositories/playlist_repository.dart';
 import 'features/playlist/domain/usecases/playlist_usecases.dart';
+import 'features/playlist/data/datasources/system_playlist_remote_data_source.dart';
+import 'features/playlist/data/repositories/system_playlist_repository_impl.dart';
+import 'features/playlist/domain/repositories/system_playlist_repository.dart';
+import 'features/playlist/domain/usecases/system_playlist_usecases.dart';
 import 'package:music_app/features/playlist/presentation/providers/playlist_provider.dart';
+import 'package:music_app/features/playlist/presentation/providers/system_playlist_provider.dart';
 
 // ================= FAVORITE =================
 import 'features/favorite/data/datasources/favorite_remote_data_source.dart';
@@ -51,6 +74,9 @@ import 'features/favorite/data/repositories/favorite_repository_impl.dart';
 import 'features/favorite/domain/repositories/favorite_repository.dart';
 import 'features/favorite/domain/usecases/favorite_usecases.dart';
 import 'package:music_app/features/favorite/presentation/providers/favorite_provider.dart';
+
+// ================= SEARCH =================
+import 'package:music_app/features/search/presentation/providers/search_provider.dart';
 
 final sl = GetIt.instance;
 
@@ -107,6 +133,26 @@ Future<void> init() async {
   sl.registerLazySingleton(() => DeleteSong(sl()));
   sl.registerLazySingleton(() => IncreasePlayCount(sl()));
 
+  // ✅ SONG PROVIDERS
+  sl.registerFactory(
+    () => SongProvider(
+      getSongs: sl(),
+      getSong: sl(),
+      searchSongs: sl(),
+      increasePlayCount: sl(),
+      audio: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => SongManagerProvider(
+      getSongs: sl(),
+      addSong: sl(),
+      updateSong: sl(),
+      deleteSong: sl(),
+    ),
+  );
+
   // ================= PLAYLIST =================
   sl.registerLazySingleton<PlaylistRemoteDataSource>(
     () => PlaylistRemoteDataSourceImpl(sl()),
@@ -131,6 +177,7 @@ Future<void> init() async {
       addSongToPlaylist: sl(),
       removeSongFromPlaylist: sl(),
       deletePlaylist: sl(),
+      updatePlaylist: sl(),
     ),
   );
 
@@ -156,4 +203,58 @@ Future<void> init() async {
       isFavorite: sl(),
     ),
   );
+
+  // ================= ALBUM =================
+  sl.registerLazySingleton(() => AlbumRemoteDataSource(sl()));
+
+  sl.registerLazySingleton<AlbumRepository>(() => AlbumRepositoryImpl(sl()));
+
+  sl.registerLazySingleton(() => GetAlbums(sl()));
+  sl.registerLazySingleton(() => GetAlbumsByArtist(sl()));
+  sl.registerLazySingleton(() => AddAlbum(sl()));
+  sl.registerLazySingleton(() => UpdateAlbum(sl()));
+  sl.registerLazySingleton(() => DeleteAlbum(sl()));
+
+  sl.registerFactory(
+    () => AlbumProvider(
+      getAlbums: sl(),
+      getAlbumsByArtist: sl(),
+      addAlbum: sl(),
+      updateAlbum: sl(),
+      deleteAlbum: sl(),
+    ),
+  );
+
+  // ================= ADMIN STATS =================
+  sl.registerLazySingleton(
+    () => GetAdminStats(getSongs: sl(), getAlbums: sl(), getArtists: sl()),
+  );
+  sl.registerFactory(() => AdminStatsProvider(getAdminStats: sl()));
+  // ================= SYSTEM PLAYLIST =================
+  sl.registerLazySingleton(() => SystemPlaylistRemoteDataSource(sl()));
+
+  sl.registerLazySingleton<SystemPlaylistRepository>(
+    () => SystemPlaylistRepositoryImpl(sl()),
+  );
+
+  sl.registerLazySingleton(() => GetSystemPlaylists(sl()));
+  sl.registerLazySingleton(() => CreateSystemPlaylist(sl()));
+  sl.registerLazySingleton(() => UpdateSystemPlaylist(sl()));
+  sl.registerLazySingleton(() => DeleteSystemPlaylist(sl()));
+  sl.registerLazySingleton(() => AddSongToSystemPlaylist(sl()));
+  sl.registerLazySingleton(() => RemoveSongFromSystemPlaylist(sl()));
+
+  sl.registerFactory(
+    () => SystemPlaylistProvider(
+      getSystemPlaylists: sl(),
+      createSystemPlaylist: sl(),
+      updateSystemPlaylist: sl(),
+      deleteSystemPlaylist: sl(),
+      addSongToSystemPlaylist: sl(),
+      removeSongFromSystemPlaylist: sl(),
+    ),
+  );
+
+  // ================= SEARCH =================
+  sl.registerFactory(() => SearchProvider(searchSongs: sl()));
 }

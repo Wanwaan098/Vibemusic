@@ -31,17 +31,18 @@ class _ArtistFormDialogState extends State<ArtistFormDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ArtistManagerProvider>();
+    final mqWidth = MediaQuery.of(context).size.width;
+    final dialogWidth = mqWidth < 700 ? mqWidth * 0.95 : 600.0;
 
     return Dialog(
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: const EdgeInsets.all(12),
       child: Container(
-        width: 600, // 👉 FORM RỘNG HƠN
+        width: dialogWidth, // adaptive width
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-
               // 🔥 TITLE
               Text(
                 widget.artist == null ? "Add Artist" : "Update Artist",
@@ -121,7 +122,6 @@ class _ArtistFormDialogState extends State<ArtistFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text("Cancel"),
