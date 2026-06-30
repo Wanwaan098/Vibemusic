@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046908304523",
+    "project_id": "appth3",
+    "storage_bucket": "appth3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046908304523:android:ad579b1135060326f8a88e",
+        "android_client_info": {
+          "package_name": "com.example.music_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB24ovQ1s4NovqVKdjq7g4qgg7wQ-jmcKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
